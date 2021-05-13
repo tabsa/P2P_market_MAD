@@ -205,7 +205,8 @@ class trading_agent: # Class of RL_agent to represent the prosumer i
         Qval_n_1 = self.Q_val_n[n-1] if n>0 else 0 # n==0 we have 0
         self.Q_val_n[n] = Qval_n_1 + 1/(n+1) * (self.reward_n[n] - Qval_n_1)
         # The opportunity cost (regret) depends on NOT exploiting others 'non-seen' (less prob) arm_j
-        self.Regret_n[n] = np.max(self.Arm_Q_j) - self.Arm_Q_j[self.action_choice]
+        Reg_n_1 = self.Regret_n[n-1] if n>0 else 0
+        self.Regret_n[n] = Reg_n_1 + 1/(n+1) * (np.max(self.Arm_Q_j) - self.Arm_Q_j[self.action_choice] - Reg_n_1)
 
     def action(self):  # Function to make the action of the agent over step_n
         multi_play = self.multi_play_k >= 3

@@ -40,8 +40,8 @@ df_col_name = ['mean_rd', 'final_step', 'energy_target', 'final_state',
 policy_agent = [] # List of policy solutions (array) per RL agent
 
 ## Saving file
-wk_dir = os.getcwd() # Define other if you want
-out_filename = 'sim_results_fixed_target_15_new_version.pkl'
+wk_dir = os.getcwd() + '/results/' # Define other if you want
+out_filename = 'sim_results_fixed_target_15.pkl'
 out_filename = os.path.join(wk_dir, out_filename)
 #######################################################################################################################
 
@@ -111,6 +111,6 @@ if __name__ == '__main__':
     data['outcome'] = outcome_agent
     data['policy_sol'] = policy_agent
     data['policy_dist'] = policy_distribution
-    # file = open(out_filename, 'wb')
-    # pkl.dump(data, file)
-    # file.close()
+    file = open(out_filename, 'wb')
+    pkl.dump(data, file)
+    file.close()
