@@ -55,7 +55,7 @@ class trading_env:
             trading_agent.energy_target = trading_agent.profile_sampling()  # Energy value as Target, where market.offers have reach from [1,...,no_trials]
         target_T = trading_agent.energy_target
         self.offers_sample(target_T)
-        for n in range(self.no_steps):  # per trial_n
+        for n in range(self.no_steps):  # per step_n (id_n)
             trading_agent.id_n = n  # id_n equals to step_n of env.run. We synchronize internal id_n with environment loop.
             #### Agent choice in step n ####
             # Agent makes action in trial_n - action_n
@@ -95,20 +95,20 @@ class trading_env:
             offer_data = pd.read_csv(self.offer_file)  # Read the csv-file with all offer info
             self.offers_info = offer_data[['energy', 'price', 'sigma']].values
             self.preference = offer_data[['distance', 'co2']].values  # Preference (Distance and CO2)
-        elif self.sample_type == 'Monte-Carlo':
-            # Monte-Carlo sampling - Assuming we change offer_energy per trial_n (time)
+        elif self.sample_type == 'Monte-Carlo': # Correct it - OLD VERSION
+            # Monte-Carlo sampling - Assuming we change offer_energy per episode_id (time)
             offer_rnd_sample = np.random.sample(size=self.no_agents) # Random sample distribution per agent_j
             offer_rnd_sample = offer_rnd_sample/sum(offer_rnd_sample) # Get the ratio to distribute as Pro-rata
             self.energy = offer_rnd_sample*target
-            # Price offering sampling - Assuming we have variance price per trial_n (time)
+            # Price offering sampling - Assuming we have variance price per episode_id (time)
             for j in range(self.no_agents): # For-loop per agent_j
-                j_mean = self.price_bounds[j,0] # Mean price per agent j
+                j_mean = self.price_bounds[j, 0] # Mean price per agent j
                 j_std = self.price_bounds[j, 1] # Std dev price per agent j
                 self.price[j,:] = np.random.normal(loc=j_mean, scale=j_std, size=self.price.shape[1])
 
 #%% Build the RL_agent and represented prosumer_i
 class trading_agent: # Class of RL_agent to represent the prosumer i
-    def __init__(self, env, e_target_bd, policy_opt, prosumer_type=None, no_sample=None, time_learning=None, e_greedy=0.05):
+    def __init__(self, env, e_target_bd, policy_opt, prosumer_type=None, no_sample=None, e_greedy=0.90):
         # Parameters - Environment info
         self.env = env  # Call the trading_env class we build above
         self.sim_shape = (env.no_offers, no_sample)  # Full shape of the simulation - action_size x no_episodes (no_samples)
@@ -119,14 +119,12 @@ class trading_agent: # Class of RL_agent to represent the prosumer i
         self.prosumer_type = prosumer_type
         self.policy_opt = policy_opt # String with the policy strategy
         self.no_sample = no_sample # Number of samples for the simulation
-        self.time_learning = time_learning # Number of time_t for learning, e.g. 1000 time_steps (trials) given for learning
-        self.e_greedy = e_greedy # Probability for exploring (epsilon_greedy)
-        self.e_exploit = 1 - e_greedy # Probability for exploiting (1 - epsilon_greedy)
+        self.e_greedy = e_greedy # Probability for exploiting (epsilon_greedy)
         self.ep = np.random.uniform(0, 1, size=env.no_steps) # rand.prob for exploiting
         self.total_reward = 0
         self.action_choice = 0 # Action decision to be used every step_n
         self.multi_play_k = np.zeros(self.env.no_offers) # K times partner j (K_j) is selected in the same episode
-        self.id_n = 0 # Index of trial_n
+        self.id_n = 0 # Index of step_n
         # Store info over step_n (action_t, state_t, reward_t)
         self.state_n = np.zeros(env.no_steps) # Settle energy for each step_n
         self.action_n = np.zeros((2, env.no_steps)) # Arrays 2 x no_steps
@@ -168,17 +166,16 @@ class trading_agent: # Class of RL_agent to represent the prosumer i
 
     def collect_data(self):  # Function to manipulate data into DataFrames
         # Get statistical results
-        end_n = self.id_n
-        mean_rd = self.total_reward / (end_n+1)
-        final_Q_n = self.Q_val_n[end_n]
-        mean_Q_n = self.Q_val_n[0:end_n].mean()
-        std_Q_n = self.Q_val_n[0:end_n].std()
-        final_Re_n = self.Regret_n[end_n]
-        mean_Re_n = self.Regret_n[0:end_n].mean()
-        std_Re_n = self.Regret_n[0:end_n].std()
+        end_n = self.id_n # Final step_n
+        mean_rd = self.Q_val_n[end_n] # mean reward of the episode, Remember Q_value computes the mean_rd every step_n, the final step_n gives us the estimated mean_rd of the episode
+        avg_Q_n = self.Q_val_n[0:end_n].mean() # It can be confusing the name, but is the average Q_value over steps
+        std_Q_n = self.Q_val_n[0:end_n].std() # Std dev of the Q_value
+        mean_regret = self.Regret_n[end_n]
+        avg_reg_n = self.Regret_n[0:end_n].mean()
+        std_reg_n = self.Regret_n[0:end_n].std()
         # Organize output data
         self.outcome.append([mean_rd, end_n+1, self.energy_target, self.state_n[end_n],
-                             final_Q_n, mean_Q_n, std_Q_n, final_Re_n, mean_Re_n, std_Re_n])
+                             avg_Q_n, std_Q_n, mean_regret, avg_reg_n, std_reg_n])
         self.policy_sol = np.vstack((self.action_n, self.state_n, self.reward_n, self.Q_val_n, self.Regret_n)) # Policy per step_n
         self.Q_val_final = np.dstack((self.Arm_Q_j, self.N_arm, self.thom_var)) # Q-action value per offer_j
 
@@ -192,21 +189,23 @@ class trading_agent: # Class of RL_agent to represent the prosumer i
         # Update the Value function for each partner j. It is updated everytime partner j is selected by action_n
         # self.N_arm counts the no of times partner j was selected
         self.N_arm[j_arm] += 1
+
         # When self.policy_opt --> 'Thompson-Sampler', we have to calculate the Beta variance as well:
         # self.thom_var: increments 1 when partner_j has reward = 0 (we miss). This way the Beta distribution is spreaded so more 'stochastic'
         # It is like the ratio of rd_j / N_j drops everytime we miss revenue in j. Increase the change of another partner being selected later on
         self.thom_var[j_arm] += 1 - self.reward_n[n] if self.policy_opt == 'Thompson_Sampler_policy' else 0
+
+        ##############################################################################################################
         # Update the Q-Value for the selected partner j (Estimated mean prob mu_j^n)
         self.Arm_Q_j[j_arm] += (1 / self.N_arm[j_arm]) * (self.reward_n[n] - self.Arm_Q_j[j_arm])
-        # Count the sucessfull times partner j was selected (only valid for the same episode)
+        # Count the successful times partner j was selected (only valid for the same episode)
         self.multi_play_k[j_arm] += 1 if self.reward_n[n] == 1 else 0 # Increments 1 everytime Rd_n(j) is 1 (success offer j)
 
         # Calculate for step_n the Q-value function (that quantifies the expected return):
         Qval_n_1 = self.Q_val_n[n-1] if n>0 else 0 # n==0 we have 0
         self.Q_val_n[n] = Qval_n_1 + 1/(n+1) * (self.reward_n[n] - Qval_n_1)
-        # The opportunity cost (regret) depends on NOT exploiting others 'non-seen' (less prob) var_n then var_n[self.action_choice]
-        # (1-e-greedy) of time_t the Agent will select the var_n with the highest self.var_theta, the regret comes on NOT exploring other action_options
-        self.Regret_n[n] = np.max(self.Q_val_n) - self.Arm_Q_j[self.action_choice] # SEE THIS FORMULA (WE MAY GET NEGATIVE RESULTS)
+        # The opportunity cost (regret) depends on NOT exploiting others 'non-seen' (less prob) arm_j
+        self.Regret_n[n] = np.max(self.Arm_Q_j) - self.Arm_Q_j[self.action_choice]
 
     def action(self):  # Function to make the action of the agent over step_n
         multi_play = self.multi_play_k >= 3
@@ -251,9 +250,7 @@ class trading_agent: # Class of RL_agent to represent the prosumer i
         self.Arm_Q_j = theta_c #.round(1)
         self.thom_var = thom_var_mu.round(0)
         if self.policy_opt == 'e-greedy_policy':
-            self.time_learning = 0
-            self.e_greedy = 0.05
-            self.e_exploit = 1 - self.e_greedy
+            self.e_greedy = 1 # Pure greedy but other we could have a decay based on the episode id - IMPROVE
 
         self.is_exp_replay = True
 
@@ -263,14 +260,11 @@ class trading_agent: # Class of RL_agent to represent the prosumer i
 
     def eGreedy_policy(self, mask): # Implements the e-greedy algorithm to explore_exploit
         mask_offers = self.env.offers_id[np.invert(mask)]
-        mask_theta = np.ma.array(self.Arm_Q_j, mask= mask)
-        # e_greedy indicates the Percentage of time used to explore the action_space (taking random choices)
-        # If id_t < time_learning: Random_choice, Else: action = var_n[highest var_theta] (Highest probability of success)
-        aux = np.random.choice(mask_offers) if self.id_n < self.time_learning else np.argmax(mask_theta)
+        mask_theta = np.ma.array(self.Arm_Q_j, mask=mask)
 
         # Step that controls IF we choice Exploration or Exploitation
-        # If ep_prob[id_t] < 1 - e_greedy: aux (best action), Else: Random_choice
-        aux = aux if self.ep[self.id_n] <= self.e_exploit else np.random.choice(mask_offers)
+        # If ep_prob[id_n] < e_greedy: best action, Else: Random_choice
+        aux = np.argmax(mask_theta) if self.ep[self.id_n] <= self.e_greedy else np.random.choice(mask_offers)
         # Return the result of the function
         return int(aux)
 

@@ -35,8 +35,8 @@ target_sample = target_bounds * np.ones(no_episodes)
 agent_list = [] # List with all RL agent
 outcome_agent = [] # List of outcome DF per RL agent
 # Name of the elements for the outcome_agent DF
-df_col_name = ['mean_rd', 'final_step', 'energy_target', 'final_state', 'final_Q_val',
-                'mean_Q_val', 'std_Q_val', 'final_G_regret', 'mean_G_regret', 'std_G_regret']
+df_col_name = ['mean_rd', 'final_step', 'energy_target', 'final_state',
+               'avg_Q_val', 'std_Q_val', 'mean_regret', 'avg_reg_val', 'std_reg_val']
 policy_agent = [] # List of policy solutions (array) per RL agent
 
 ## Saving file
@@ -55,24 +55,25 @@ if __name__ == '__main__':
     ## Create MAD environment and RL_agents
     env = trading_env(no_offers, no_steps, 'input_data/offers_input.csv', 'External_sample', target_sample)
     agent_list.append(trading_agent(env, target_bounds, agent_policy[0]))  # Random policy
-    agent_list.append(trading_agent(env, target_bounds, agent_policy[1], time_learning=10, e_greedy=0.25))  # e-Greedy policy
+    agent_list.append(trading_agent(env, target_bounds, agent_policy[1], e_greedy=0.1))  # e-Greedy policy
     agent_list.append(trading_agent(env, target_bounds, agent_policy[2]))  # Thompson-Sampler policy
 
     ## Simulation phase
     ag = 0  # id of agent
     for agent in agent_list:  # For-loop per RL agent
-        # Simulate the agent interaction
-        print(f'Run the agent with the {agent.policy_opt}:')
+        print(f'Run the agent with the {agent.policy_opt}:') # Print which RL_agent by its policy_opt
         for e in range(no_episodes):  # For-loop per episode e
             # Episode print
             print(f'Episode {e} - Energy target {target_sample[e]}')
             if agent.is_reset or e == 0:
-                env.run(agent, e)  # Run environment, inputs we have RL_agent and episode id
-                # Store info in the memory
+                env.run(agent, e)  # Run environment, as inputs - RL_agent and epi_id
+                # Exploration phase - Store info in the memory. Here we are just collecting the Q-action per epi_id
                 agent.memory.append((agent.Arm_Q_j, agent.N_arm, agent.thom_var, agent.total_reward, agent.id_n, agent.state_n[agent.id_n]))
-                if len(agent.memory) >= batch_size:  # and len(agent.memory) <= 50:
+                if len(agent.memory) >= batch_size: # Exploitation phase - Enough memory for us to estimate the Q-action function per arm_j
                     agent.exp_replay(batch_size, greedy=True)
-                    batch_size += 1  # Increase the batch size of previous episodes, to propagate the long-term memory
+                    batch_size += 1  # Very simple!! Increase the batch size of previous episodes, to propagate the long-term memory
+                    # There is another way of implementing instead of progressively increasing the batch_size
+
                 # Store final results in np.arrays
                 policy_sol_epi[:, :, e] = agent.policy_sol
                 policy_estimate_dist[e, :, :] = agent.Q_val_final
