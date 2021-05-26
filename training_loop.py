@@ -1,6 +1,13 @@
-## RL agent for the Energy P2P market as Multi-Armed Bandit (MAD) problem
-# Application of MAD problem to the energy P2P market
-#
+## Training and testing of the RL agents
+# This script runs the training and testing of the RL agents declared on the MAD_env class
+# Here we have implement three different policies for the RL agent:
+#  - Random policy
+#  - Epsilon-Greedy policy
+#  - Thompson-Sampler policy
+# For details on the training and testing please have a look to the X.pdf on the 'Presentations/' folder.
+# The file contains more details on how this implementation was made.
+# On RL framework, the exploration phase replaces the training, and the exploitation phase replaces the testing.
+# Basically, the first episodes are for exploration and the remaining for exploitation. This is how we train a RL agent.
 
 #%% Import packages
 import numpy as np
@@ -11,12 +18,12 @@ import os
 from MAD_env import trading_env, trading_agent
 from plot_class import *
 
-#%% Hyperparameters for the simulation
-## Simulation
+#%% Hyperparameters for the training
 no_steps = 40 # per episode
 no_episodes = 100
 no_RL_agents = 3 # each agent has a different policy
-batch_size = 20 # exp replay buffer
+batch_size = 20 # exp replay buffer, also dictates the episodes for training and testing
+# Basically, batch_size dictates the first 20 episodes are for pure exploration, while the exploitation starts on the remaining ones
 
 ## RL_agent policies (to be simulated)
 agent_policy = ['Random_policy', 'e-greedy_policy', 'Thompson_Sampler_policy']
@@ -58,7 +65,7 @@ if __name__ == '__main__':
     agent_list.append(trading_agent(env, target_bounds, agent_policy[1], e_greedy=0.1))  # e-Greedy policy
     agent_list.append(trading_agent(env, target_bounds, agent_policy[2]))  # Thompson-Sampler policy
 
-    ## Simulation phase
+    ## Training and Testing phases
     ag = 0  # id of agent
     for agent in agent_list:  # For-loop per RL agent
         print(f'Run the agent with the {agent.policy_opt}:') # Print which RL_agent by its policy_opt
@@ -69,7 +76,7 @@ if __name__ == '__main__':
                 env.run(agent, e)  # Run environment, as inputs - RL_agent and epi_id
                 # Exploration phase - Store info in the memory. Here we are just collecting the Q-action per epi_id
                 agent.memory.append((agent.Arm_Q_j, agent.N_arm, agent.thom_var, agent.total_reward, agent.id_n, agent.state_n[agent.id_n]))
-                if len(agent.memory) >= batch_size: # Exploitation phase - Enough memory for us to estimate the Q-action function per arm_j
+                if len(agent.memory) >= batch_size: # Exploitation phase (or Testing) - Enough memory for us to estimate the Q-action function per arm_j
                     agent.exp_replay(batch_size, greedy=True)
                     batch_size += 1  # Very simple!! Increase the batch size of previous episodes, to propagate the long-term memory
                     # There is another way of implementing instead of progressively increasing the batch_size
@@ -93,7 +100,7 @@ if __name__ == '__main__':
         print('\n')
     print(f'All {no_episodes} Episodes are done')
 
-    #%% Save simulation results
+    ## Save simulation results
     # Build a dictionary
     data = {}
     agents = {}
