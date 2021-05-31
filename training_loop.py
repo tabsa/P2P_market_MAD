@@ -67,7 +67,7 @@ if __name__ == '__main__':
 
     ## Training and Testing phases
     ag = 0  # id of agent
-    for agent in agent_list:  # For-loop per RL agent
+    for agent in agent_list: # For-loop per RL agent
         print(f'Run the agent with the {agent.policy_opt}:') # Print which RL_agent by its policy_opt
         for e in range(no_episodes):  # For-loop per episode e
             # Episode print

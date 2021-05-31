@@ -26,7 +26,7 @@ class trading_env:
     def __init__(self, no_offers, no_steps, offer_file, sample_type=None, sample_seed=None, no_preferences=2):  # Define parameters of the environment
         # time-space parameters
         self.no_steps = no_steps  # Time-step of the energy P2P market in the RL framework, duration of each episode [1,...,no_trials]
-        self.end_trial = 0
+        self.end_step = 0
         self.env_size = (no_offers, no_steps)
         # Offers parameters
         self.no_offers = no_offers
@@ -42,7 +42,7 @@ class trading_env:
         self.is_reset = False
 
     def reset(self): # Reset env so that we use for another episode
-        self.end_trial = 0
+        self.end_step = 0
         self.env_simulation = 0
         self.sigma_n = np.zeros((self.no_offers, self.no_steps))
         self.is_reset = True
