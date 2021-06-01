@@ -16,6 +16,8 @@ from plot_class import *
 wk_dir = os.getcwd() + '/results/' # Get from the 'results/' folder
 train_file = 'sim_results_fixed_target_15.pkl' # Replace by other if you want
 train_file = os.path.join(wk_dir, train_file)
+out_filename = 'sim_results_fixed_target_15_Validation.pkl'
+out_filename = os.path.join(wk_dir, out_filename)
 
 #no_steps = policy.shape[1] # per episode
 no_steps = 40 # It can be the same or not from the training loop...up to the user
@@ -68,12 +70,34 @@ if __name__ == '__main__':
             # Store final results in np.arrays
             policy_sol_epi[:, :, e] = agent.policy_sol
             policy_estimate_dist[e, :, :] = agent.Q_val_final
-
-            if e < no_episodes-1:
+            # Go to the next episode
+            if e < no_episodes-1: # stopping condition
                 e += 1
                 # Reset of both agent and environment
                 agent.reset()
-            else:
+            else: # Stop the loop
                 break
         print('\n')
     print(f'Validation phase is done')
+
+    ## Save simulation results
+    # Build a dictionary
+    estimator = {} # Estimator computed from the Training_loop, that was used for this validation
+    validation = {} # Results from the validation phase
+    # Estimator info
+    estimator['episodes'] = training_epi
+    estimator['Arm_Q_j'] = [optimal_policy[i][training_epi, :, 0].mean(axis=0) for i in range(3)]
+    estimator['N_arm'] = [optimal_policy[i][training_epi, :, 1].mean(axis=0) for i in range(3)]
+    estimator['Thom_var'] = [optimal_policy[i][training_epi, :, 2].mean(axis=0) for i in range(3)]
+    # Validation info
+    validation['target'] = target_sample # Energy_target used for the validation
+    validation['episodes'] = no_episodes
+    validation['steps'] = no_steps
+    validation['policy_sol'] = policy_agent # Optimal policy per agent and episode
+    validation['policy_dist'] = policy_distribution # Distribution of Q_val per arm_j (partner)
+    # Assign the new results to the data dictionary
+    data['training_estimator'] = estimator
+    data['validation'] = validation
+    file = open(out_filename, 'wb')
+    pkl.dump(data, file)
+    file.close()
