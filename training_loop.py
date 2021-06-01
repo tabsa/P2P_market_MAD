@@ -19,6 +19,10 @@ from MAD_env import trading_env, trading_agent
 from plot_class import *
 
 #%% Hyperparameters for the training
+# Input parameters
+input_dir = os.getcwd() + '/input_data/' # Define other if you want
+in_filename = 'offers_input_30_partners.csv'
+in_filename = os.path.join(input_dir, in_filename) # Path for the Input csv.file
 no_steps = 40 # per episode
 no_episodes = 100
 no_RL_agents = 3 # each agent has a different policy
@@ -29,11 +33,11 @@ batch_size = 20 # exp replay buffer, also dictates the episodes for training and
 agent_policy = ['Random_policy', 'e-greedy_policy', 'Thompson_Sampler_policy']
 
 ## P2P market
-no_offers = 15 # no of offers the RL_agent/prosumer can trade with
+no_offers = 30 # no of offers the RL_agent/prosumer can trade with
 # Different types of energy_target scenarios:
 #target_bounds = np.array([3, 25]) # Random (and independent) between episodes
 #target_sample = np.random.uniform(low=target_bounds[0], high=target_bounds[1], size=no_episodes)
-target_bounds = 15 # Fixed e_target
+target_bounds = 25 # Fixed e_target
 target_sample = target_bounds * np.ones(no_episodes)
 #target_bounds = np.arange(start=5, stop=51, step=5) # Progressive e_target = [5, 50]
 #target_sample = np.repeat(target_bounds, 20)
@@ -48,7 +52,7 @@ policy_agent = [] # List of policy solutions (array) per RL agent
 
 ## Saving file
 wk_dir = os.getcwd() + '/results/' # Define other if you want
-out_filename = 'sim_results_fixed_target_15.pkl'
+out_filename = 'training_results_30_partners.pkl'
 out_filename = os.path.join(wk_dir, out_filename)
 #######################################################################################################################
 
@@ -60,7 +64,7 @@ if __name__ == '__main__':
     policy_estimate_dist = np.zeros((no_episodes, no_offers, 3)) # 3 values stored per epi and offer, that is why we have a 3rd dimension
 
     ## Create MAD environment and RL_agents
-    env = trading_env(no_offers, no_steps, 'input_data/offers_input.csv', 'External_sample', target_sample)
+    env = trading_env(no_offers, no_steps, in_filename, 'External_sample', target_sample)
     agent_list.append(trading_agent(env, target_bounds, agent_policy[0]))  # Random policy
     agent_list.append(trading_agent(env, target_bounds, agent_policy[1], e_greedy=0.1))  # e-Greedy policy
     agent_list.append(trading_agent(env, target_bounds, agent_policy[2]))  # Thompson-Sampler policy
