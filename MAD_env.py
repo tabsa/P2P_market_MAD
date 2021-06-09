@@ -66,8 +66,8 @@ class trading_env:
             # Update state_n and action_n
             state_n_1 = trading_agent.state_n[n - 1] if n > 0 else 0 # state_n-1
             trading_agent.action_n[:, n], trading_agent.state_n[n] = self.update_state_reward(action_n, state_n_1, trading_agent.reward_n[n], target_T)
-            trading_agent.total_reward += trading_agent.reward_n[n] # Total reward over n steps
-            trading_agent.update_value_fun()  # Update of regret probability
+            #trading_agent.total_reward += trading_agent.reward_n[n] # Total reward over n steps
+            trading_agent.update_value_fun()  # Update of Reward and Regret functions
             # Termination condition
             if target_T == trading_agent.state_n[n] or n == self.no_steps-1: # E_target is reached OR final step_n is reached
                 self.env_simulation = 1
@@ -204,6 +204,7 @@ class trading_agent: # Class of RL_agent to represent the prosumer i
         # Calculate for step_n the Q-value function (that quantifies the expected return):
         Qval_n_1 = self.Q_val_n[n-1] if n>0 else 0 # n==0 we have 0
         self.Q_val_n[n] = Qval_n_1 + 1/(n+1) * (self.reward_n[n] - Qval_n_1)
+        self.total_reward = self.Q_val_n[n]
         # The opportunity cost (regret) depends on NOT exploiting others 'non-seen' (less prob) arm_j
         Reg_n_1 = self.Regret_n[n-1] if n>0 else 0
         self.Regret_n[n] = Reg_n_1 + 1/(n+1) * (np.max(self.Arm_Q_j) - self.Arm_Q_j[self.action_choice] - Reg_n_1)
@@ -222,24 +223,26 @@ class trading_agent: # Class of RL_agent to represent the prosumer i
         # Return the result
         return self.action_choice
 
-    def exp_replay(self, batch_size, greedy=True): # Training the theta per action over episodes e
-        ## Per episode c, we update the var_theta so that we can have a better guess for action_n
-        # mini_batch has all episodes i in the memory - Selected randomly
-        mini_batch = rnd.sample(self.memory, batch_size)
+    def exp_replay(self, rd_pct=90, greedy=True): # Training the Q_val(arm_j) over previous episodes
+        ## Select the episodes on the top percentile (default 90)
+        reward = list(map(lambda batch: batch[3], self.memory)) # Get reward per episode i
+        rd_bound = np.percentile(reward, rd_pct) # reward bound
+        mini_batch = np.where(reward >= rd_bound)[0] # Episodes index that are on the top percentile
         # Arm_Q_j for episode c - Prob as weighted average per final_state and gamma_bth
         theta_rd_c = np.zeros(self.env.no_offers) # self.a - sum of rewards per action_n
         theta_at_c = np.zeros(self.env.no_offers) # self.b - no. times action_n was selected
         thom_var_mu = np.zeros(self.env.no_offers)  # self.thom_var - Variance of the Beta distribution (Thompson-Sampler policy)
         total_state = 0
         # For-loop to calculate var_theta per episode i in mini_batch
-        for theta_rd_i, theta_at_i, thom_var_i, total_rd_i, final_step_i, final_state_i in mini_batch: # Get elements per deque (episode i)
-            gamma_i = total_rd_i / final_step_i # gamma per episode i
+        for i in mini_batch: # Exp replay loop - Averaging the Q_val(j) of all top episodes
+            theta_rd_i, theta_at_i, thom_var_i, total_rd_i, final_step_i, final_state_i = self.memory[i] # Get elements per deque (episode i)
+            gamma_i = 1 - final_step_i / (self.env.no_steps-1) # gamma per episode i (success rate)
             # Weighted sum
             theta_rd_c += theta_rd_i if greedy else final_state_i * gamma_i * theta_rd_i
             theta_at_c += theta_at_i if greedy else final_state_i * gamma_i * theta_at_i
             thom_var_mu += thom_var_i if greedy else final_state_i * gamma_i * thom_var_i
             total_state += 1 if greedy else final_state_i
-        # Get the average result by dividing for total_state
+        # Get the average result by dividing for total_state (No episodes OR sum(E_target))
         #theta_rd_c = theta_rd_c / total_state  # avg_sum_reward per action_n - avg_a
         theta_c = theta_rd_c / total_state  # avg_sum_reward per partner j - avg_var_theta
         theta_at_c = theta_at_c / total_state  # avg_no.times per partner j - avg_b

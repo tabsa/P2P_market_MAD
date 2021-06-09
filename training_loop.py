@@ -21,7 +21,7 @@ from plot_class import *
 #%% Hyperparameters for the training
 # Input parameters
 input_dir = os.getcwd() + '/input_data/' # Define other if you want
-in_filename = 'offers_input_30_partners.csv'
+in_filename = 'offers_input.csv'
 in_filename = os.path.join(input_dir, in_filename) # Path for the Input csv.file
 no_steps = 40 # per episode
 no_episodes = 100
@@ -33,11 +33,11 @@ batch_size = 20 # exp replay buffer, also dictates the episodes for training and
 agent_policy = ['Random_policy', 'e-greedy_policy', 'Thompson_Sampler_policy']
 
 ## P2P market
-no_offers = 30 # no of offers the RL_agent/prosumer can trade with
+no_offers = 15 # no of offers the RL_agent/prosumer can trade with
 # Different types of energy_target scenarios:
 #target_bounds = np.array([3, 25]) # Random (and independent) between episodes
 #target_sample = np.random.uniform(low=target_bounds[0], high=target_bounds[1], size=no_episodes)
-target_bounds = 25 # Fixed e_target
+target_bounds = 15 # Fixed e_target
 target_sample = target_bounds * np.ones(no_episodes)
 #target_bounds = np.arange(start=5, stop=51, step=5) # Progressive e_target = [5, 50]
 #target_sample = np.repeat(target_bounds, 20)
@@ -52,7 +52,7 @@ policy_agent = [] # List of policy solutions (array) per RL agent
 
 ## Saving file
 wk_dir = os.getcwd() + '/results/' # Define other if you want
-out_filename = 'training_results_30_partners.pkl'
+out_filename = 'sim_results_fixed_target_15_batch_improve.pkl'
 out_filename = os.path.join(wk_dir, out_filename)
 #######################################################################################################################
 
@@ -81,8 +81,8 @@ if __name__ == '__main__':
                 # Exploration phase - Store info in the memory. Here we are just collecting the Q-action per epi_id
                 agent.memory.append((agent.Arm_Q_j, agent.N_arm, agent.thom_var, agent.total_reward, agent.id_n, agent.state_n[agent.id_n]))
                 if len(agent.memory) >= batch_size: # Exploitation phase (or Testing) - Enough memory for us to estimate the Q-action function per arm_j
-                    agent.exp_replay(batch_size, greedy=True)
-                    batch_size += 1  # Very simple!! Increase the batch size of previous episodes, to propagate the long-term memory
+                    agent.exp_replay(greedy=True)
+                    #batch_size += 1  # Very simple!! Increase the batch size of previous episodes, to propagate the long-term memory
                     # There is another way of implementing instead of progressively increasing the batch_size
 
                 # Store final results in np.arrays
