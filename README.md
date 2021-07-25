@@ -7,3 +7,16 @@ T. Sousa and P. Pinson, Fairness-Driven Agent for P2P Electricity Markets: Reinf
 The code is written in Python 3.8 and uses the libraries in the [requirements file](https://github.com/tabsa/P2P_market_MAD/blob/main/requirements.txt).
 Command for creating a virtual environment:
  - ```conda create --name <env_name> --file requirements.txt```
+
+## Repository structure
+This repository has the following directory structure
+- Main folder: scripts, notebooks and requirements.txt
+- input_data folder: CSV-files with the input data used in this work, with a README file
+- results folder: Pickle-files storing the results of different simulations, with a README file
+- Presentations folder: PDF-files with presentations of this work
+
+## Reproduce experiments with the scripts
+
+## Notebooks
+
+## References
