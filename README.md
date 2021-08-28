@@ -19,22 +19,22 @@ This repository has the following directory structure
 Execute the following python scripts, which are grouped by task.
  - Training the RL agent for a particular case 
     - Open file [training_loop.py](https://github.com/tabsa/P2P_market_MAD/blob/main/training_loop.py), and change the case csv.file and Hyperparameters
-```
-#%% Hyperparameters for the training
-# Input parameters
-input_dir = os.getcwd() + '/input_data/' # Define other if you want
-in_filename = 'offers_input.csv'
-in_filename = os.path.join(input_dir, in_filename) # Path for the Input csv.file
-no_steps = 40 # per episode
-no_episodes = 100
-no_RL_agents = 3 # each agent has a different policy
-batch_size = 20 # exp replay buffer, also dictates the episodes for training and testing
-# Basically, batch_size dictates the first 20 episodes are for pure exploration, while the exploitation starts on the remaining ones
+    ```
+    #%% Hyperparameters for the training
+    # Input parameters
+    input_dir = os.getcwd() + '/input_data/' # Define other if you want
+    in_filename = 'offers_input.csv'
+    in_filename = os.path.join(input_dir, in_filename) # Path for the Input csv.file
+    no_steps = 40 # per episode
+    no_episodes = 100
+    no_RL_agents = 3 # each agent has a different policy
+    batch_size = 20 # exp replay buffer, also dictates the episodes for training and testing
+    # Basically, batch_size dictates the first 20 episodes are for pure exploration, while the exploitation starts on the remaining ones
 
-## RL_agent policies (to be simulated)
-agent_policy = ['Random_policy', 'e-greedy_policy', 'Thompson_Sampler_policy']
-```
-    - Run the file
+    ## RL_agent policies (to be simulated)
+    agent_policy = ['Random_policy', 'e-greedy_policy', 'Thompson_Sampler_policy']
+    ```
+   - Run the file
     - 
 
 
