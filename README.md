@@ -19,48 +19,52 @@ This repository has the following directory structure
 Execute the following python scripts, which are grouped by task.
  - Training the RL agent for a particular case 
     - Open file [training_loop.py](https://github.com/tabsa/P2P_market_MAD/blob/main/training_loop.py), and change the case csv.file and Hyperparameters
-    ```
-    #%% Hyperparameters for the training
-    # Input parameters
-    input_dir = os.getcwd() + '/input_data/' # Define other if you want
-    in_filename = 'offers_input.csv'
-    in_filename = os.path.join(input_dir, in_filename) # Path for the Input csv.file
-    no_steps = 40 # per episode
-    no_episodes = 100
-    no_RL_agents = 3 # each agent has a different policy
-    batch_size = 20 # exp replay buffer, also dictates the episodes for training and testing
-    # Basically, batch_size dictates the first 20 episodes are for pure exploration, while the exploitation starts on the remaining ones
+```
+#%% Hyperparameters for the training
+# Input parameters
+input_dir = os.getcwd() + '/input_data/' # Define other if you want
+in_filename = 'offers_input.csv'
+in_filename = os.path.join(input_dir, in_filename) # Path for the Input csv.file
+no_steps = 40 # per episode
+no_episodes = 100
+no_RL_agents = 3 # each agent has a different policy
+batch_size = 20 # exp replay buffer, also dictates the episodes for training and testing
+# Basically, batch_size dictates the first 20 episodes are for pure exploration, while the exploitation starts on the remaining ones
 
-    ## RL_agent policies (to be simulated)
-    agent_policy = ['Random_policy', 'e-greedy_policy', 'Thompson_Sampler_policy']
-    
-    ## Saving file
-    wk_dir = os.getcwd() + '/results/' # Define other if you want
-    out_filename = 'sim_results_fixed_target_15_batch_improve.pkl'
-    out_filename = os.path.join(wk_dir, out_filename)
-    ```
+## RL_agent policies (to be simulated)
+agent_policy = ['Random_policy', 'e-greedy_policy', 'Thompson_Sampler_policy']
+
+## Saving file
+wk_dir = os.getcwd() + '/results/' # Define other if you want
+out_filename = 'sim_results_fixed_target_15_batch_improve.pkl'
+out_filename = os.path.join(wk_dir, out_filename)
+```
    - Run the file
    - Analyse the results in the Notebook [Data_analysis_and_Policy](https://github.com/tabsa/P2P_market_MAD/blob/main/Data_analysis_and_Policy.ipynb)
  - Testing the RL agent after training
     - Open file [P2P_simulation] (https://github.com/tabsa/P2P_market_MAD/blob/main/P2P_simulation.py)
     - Define the training pickle.file and Hyperparameters
-  ```
-  #%% Hyperparameters for the validation
-  ## Path of the file with the training loop
-  wk_dir = os.getcwd() + '/results/' # Get from the 'results/' folder
-  train_file = 'sim_results_fixed_target_15.pkl' # Replace by other if you want
-  train_file = os.path.join(wk_dir, train_file)
-  out_filename = 'sim_results_fixed_target_15_Validation.pkl'
-  out_filename = os.path.join(wk_dir, out_filename)
+```
+#%% Hyperparameters for the validation
+## Path of the file with the training loop
+wk_dir = os.getcwd() + '/results/' # Get from the 'results/' folder
+train_file = 'sim_results_fixed_target_15.pkl' # Replace by other if you want
+train_file = os.path.join(wk_dir, train_file)
+out_filename = 'sim_results_fixed_target_15_Validation.pkl'
+out_filename = os.path.join(wk_dir, out_filename)
 
-  #no_steps = policy.shape[1] # per episode
-  no_steps = 40 # It can be the same or not from the training loop...up to the user
-  no_episodes = 100 # Episodes for validation
-  training_epi = np.arange(90, 100) # episodes id to get the final optimal policy from the training loop
-  ```
-   - Use the same Notebook for analysing the results
-
-
-## Notebooks
+#no_steps = policy.shape[1] # per episode
+no_steps = 40 # It can be the same or not from the training loop...up to the user
+no_episodes = 100 # Episodes for validation
+training_epi = np.arange(90, 100) # episodes id to get the final optimal policy from the training loop
+```
+   - Use the same Notebook for analysing the testing results
 
 ## References
+This work used the following papers as references:
+ - [Budget-Constrained Multi-Armed Bandits with Multiple Plays](https://arxiv.org/abs/1711.05928)
+ - [Epsilon–First Policies for Budget–Limited Multi-Armed Bandits](https://eprints.soton.ac.uk/270806/)
+ - [Knapsack Based Optimal Policies for Budget–Limited Multi–Armed Bandits](https://arxiv.org/abs/1204.1909)
+ - [Decentralised Dynamic Task Allocation: A Practical Game–Theoretic Approach](http://www.ifaamas.org/Proceedings/aamas09/pdf/01_Full%20Papers/16_90_FP_0572.pdf)
+ - [Reinformcement Learning: An Introduction](https://web.stanford.edu/class/psych209/Readings/SuttonBartoIPRLBook2ndEd.pdf)
+ - [Deep Reinforcement Learning Hands-on](https://github.com/PacktPublishing/Deep-Reinforcement-Learning-Hands-On)
